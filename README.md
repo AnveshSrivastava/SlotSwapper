@@ -19,28 +19,31 @@ The application follows a modern full-stack architecture:
 
 ## 📁 Project Structure
 
+The repository is organized with the frontend (client) at the project root and the backend in the `backend-node` folder. Optional developer tooling and plugins live under `plugins`.
+
 ```bash
 SlotSwapper/
-├── frontend/
+├── src/                   # Frontend source (React + Vite)
+│   ├── components/        # Reusable UI components
+│   ├── contexts/          # React context providers
+   │   ├── hooks/          # Custom React hooks
+│   ├── pages/             # Top-level pages (Dashboard, Marketplace, etc.)
+│   └── utils/             # Utility functions
+├── public/                # Static assets and index.html
+├── package.json           # Frontend dependencies & scripts (dev/build)
+├── vite.config.ts         # Vite configuration
+├── craco.config.js        # Optional CRA/webpack overrides (used for dev tooling)
+├── postcss.config.js      # Tailwind/PostCSS config
+├── plugins/               # Optional dev plugins (visual-edits, health-check)
+├── backend-node/          # Backend (Node + Express + Prisma)
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── contexts/       # React context providers
-│   │   ├── pages/         # Main application pages
-│   │   ├── hooks/         # Custom React hooks
-│   │   └── utils/         # Utility functions
-│   ├── vite.config.js     # Vite configuration
-│   └── package.json       # Frontend dependencies
-│
-└── backend-node/
-    ├── src/
-    │   ├── controllers/   # Route controllers
-    │   ├── middleware/    # Express middleware
-    │   ├── routes/        # API route definitions
-    │   ├── prisma/        # Database schema and migrations
-    │   └── utils/         # Helper functions
-    ├── prisma/           # Prisma configuration
-    ├── package.json      # Backend dependencies
-    └── tsconfig.json     # TypeScript configuration
+│   │   ├── controllers/   # Route controllers
+│   │   ├── routes/        # API routes
+│   │   ├── middleware/    # Express middleware
+│   │   └── prisma/        # Prisma schema & migrations
+   ├── package.json       # Backend dependencies & scripts
+├── README.md              # This file
+└── tsconfig.json          # TypeScript config (frontend)
 ```
 
 ## 🛠️ Tech Stack
@@ -84,20 +87,21 @@ git clone https://github.com/AnveshSrivastava/SlotSwapper.git
 cd SlotSwapper
 ```
 
-2. **Backend Setup**
+2. **Backend Setup** (API server)
 ```bash
 cd backend-node
 npm install
-cp .env.example .env  # Configure your environment variables
-npx prisma migrate dev
-npm run dev
+# Create or edit the backend `.env` file with your values. If you have an `.env.example`, copy it and update the values:
+# cp .env.example .env
+npx prisma migrate dev   # Run database migrations (creates DB schema)
+npm run dev               # Start backend in dev mode (ts-node-dev)
 ```
 
-3. **Frontend Setup**
+3. **Frontend Setup** (UI client)
 ```bash
-cd ../frontend
+# From the repository root
 npm install
-npm run dev
+npm run dev               # Starts Vite dev server (default port shown by Vite, e.g. http://localhost:5173)
 ```
 
 ## ⚙️ Environment Variables
