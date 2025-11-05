@@ -1,0 +1,126 @@
+# Docker Compose configuration for SlotSwapper
+# This file orchestrates the backend, frontend, and database services
+
+version: '3.8'
+
+# Define all services (containers) that make up the application
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: slotswapper-db
+    restart: unless-stopped
+    environment:
+      # Database credentials
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: slotswapper
+    ports:
+      # Expose database port to host machine for local access
+      - "5432:5432"
+    volumes:
+      # Named volume for persistent data storage
+      # This ensures data persists even if the container is removed
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - slotswapper-network
+    healthcheck:
+      # Health check to ensure database is ready before backend starts
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Service (Node.js + Express + Prisma)
+  backend:
+    build:
+      # Build context is the backend-node directory
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: slotswapper-backend
+    restart: unless-stopped
+    ports:
+      # Expose backend API port to host machine
+      - "4000:4000"
+    environment:
+      # Database connection URL
+      # Uses 'db' as hostname (service name in docker-compose)
+      DATABASE_URL: postgresql://postgres:admin@db:5432/slotswapper?schema=public
+      # JWT secret for token signing (should be set in .env file)
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      NODE_ENV: development
+    depends_on:
+      # Wait for database to be healthy before starting
+      db:
+        condition: service_healthy
+    networks:
+      - slotswapper-network
+    volumes:
+      # Mount source code for hot-reloading (development only)
+      - ./backend-node/src:/app/src
+      # Mount Prisma schema for hot-reloading
+      - ./backend-node/src/prisma:/app/src/prisma
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
+
+  # Frontend Service (React + Vite)
+  frontend:
+    build:
+      # Build context is the project root (where frontend files are)
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    container_name: slotswapper-frontend
+    restart: unless-stopped
+    ports:
+      # Expose Vite dev server port to host machine
+      - "5173:5173"
+    environment:
+      # API base URL for frontend to connect to backend
+      # In development, this points to the backend service
+      VITE_API_BASE_URL: http://localhost:4000
+    depends_on:
+      # Start after backend is running
+      - backend
+    networks:
+      - slotswapper-network
+    volumes:
+      # Mount source code for hot-reloading (development only)
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
+
+# Named volumes for persistent data storage
+volumes:
+  # PostgreSQL data volume
+  # This persists database data across container restarts
+  pgdata:
+    driver: local
+
+# Docker network for service communication
+networks:
+  slotswapper-network:
+    driver: bridge
+    name: slotswapper-network
+
+# ============================================================================
+# ENVIRONMENT VARIABLES (.env file example)
+# ============================================================================
+# Create a .env file in the project root with the following variables:
+#
+# JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+# DATABASE_URL=postgresql://postgres:admin@db:5432/slotswapper?schema=public
+#
+# Note: DATABASE_URL is already set in docker-compose.yml, but you can override
+# it if needed. The JWT_SECRET should definitely be set in your .env file.
+#
+# To use this file:
+# 1. Copy this section to a new file named .env in the project root
+# 2. Update the values with your actual secrets
+# 3. Make sure .env is in your .gitignore file
+#
+# Example .env file content:
+# JWT_SECRET=my-super-secret-jwt-key-12345
+# ============================================================================
+
